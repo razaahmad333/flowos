@@ -1,26 +1,20 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
-import queueRoutes from './routes/queueRoutes';
-import healthRoutes from './routes/healthRoutes';
-import metaRoutes from './routes/metaRoutes';
-import { errorHandler } from './utils/errors';
+import swaggerUi from 'swagger-ui-express';
+import routes from './routes';
+import { errorHandler } from './middleware/errorHandler';
+import { swaggerSpec } from './config/swagger';
 
 const app = express();
 
-// Middleware
 app.use(helmet());
 app.use(cors());
-app.use(morgan('dev'));
 app.use(express.json());
 
-// Routes
-app.use('/api/queue', queueRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api', metaRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/v1', routes);
 
-// Error handling
 app.use(errorHandler);
 
 export default app;

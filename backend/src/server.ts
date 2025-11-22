@@ -1,28 +1,16 @@
-import http from 'http';
 import app from './app';
-import { config } from './config/env';
+import { env } from './config/env';
 import { connectDB } from './config/db';
-import { redisClient } from './config/redis';
-import { initSocketServer } from './sockets/index';
-
-const server = http.createServer(app);
-
-// Initialize Socket.IO
-initSocketServer(server);
+import { connectRedis } from './config/redis';
+import { logger } from './config/logger';
 
 const startServer = async () => {
-    try {
-        // Connect to DB
-        await connectDB();
+    await connectDB();
+    await connectRedis();
 
-        // Start Server
-        server.listen(config.port, () => {
-            console.log(`Server running in ${config.nodeEnv} mode on port ${config.port}`);
-        });
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
+    app.listen(env.PORT, () => {
+        logger.info(`Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+    });
 };
 
 startServer();

@@ -1,12 +1,26 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
-const departmentSchema = new Schema(
+export interface IDepartment extends Document {
+    hospitalId: Types.ObjectId;
+    name: string;
+    code: string;
+    externalCode?: string;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const DepartmentSchema: Schema = new Schema(
     {
+        hospitalId: { type: Schema.Types.ObjectId, ref: 'Hospital', required: true },
         name: { type: String, required: true },
-        code: { type: String, required: true, unique: true }, // e.g. OPD, CARD
-        hospitalId: { type: String, required: true }, // keep simple for now
+        code: { type: String, required: true },
+        externalCode: { type: String },
+        isActive: { type: Boolean, default: true },
     },
     { timestamps: true }
 );
 
-export const Department = model('Department', departmentSchema);
+DepartmentSchema.index({ hospitalId: 1, code: 1 }, { unique: true });
+
+export default mongoose.model<IDepartment>('Department', DepartmentSchema);

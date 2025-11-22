@@ -1,60 +1,33 @@
 import axios from 'axios';
-import { CreateTokenPayload, Token, TokenStatus, Department, Doctor } from '../types/queue';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-export const queueApi = {
-    registerToken: async (payload: CreateTokenPayload): Promise<Token> => {
-        const response = await apiClient.post('/queue/register', payload);
-        return response.data;
-    },
+apiClient.interceptors.request.use((config) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
-    getQueue: async (departmentId: string): Promise<Token[]> => {
-        const response = await apiClient.get('/queue/list', {
-            params: { departmentId },
-        });
-        return response.data;
-    },
-
-    callNext: async (departmentId: string, doctorId?: string): Promise<Token | null> => {
-        try {
-            const response = await apiClient.post('/queue/next', {
-                departmentId,
-                doctorId,
-            });
-            return response.data;
-        } catch (error: any) {
-            if (error.response && error.response.status === 404) {
-                return null;
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                // Optionally redirect to login, but let the page handle it via AuthContext or guard
+                // window.location.href = '/login';
             }
-            throw error;
         }
-    },
-
-    updateStatus: async (tokenId: string, status: TokenStatus): Promise<Token> => {
-        const response = await apiClient.post('/queue/status', {
-            tokenId,
-            status,
-        });
-        return response.data;
-    },
-
-    getDepartments: async (): Promise<Department[]> => {
-        const response = await apiClient.get('/departments');
-        return response.data;
-    },
-
-    getDoctors: async (departmentId?: string): Promise<Doctor[]> => {
-        const response = await apiClient.get('/doctors', {
-            params: { departmentId },
-        });
-        return response.data;
-    },
-};
+        return Promise.reject(error);
+    }
+);
