@@ -4,6 +4,7 @@ import { hashPassword } from '../utils/password';
 import { sendSuccess, sendError } from '../utils/httpResponses';
 import { logAuditEvent } from '../services/auditService';
 import { Types } from 'mongoose';
+import { checkPlanLimit } from '../services/featureService';
 
 export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -16,6 +17,8 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
 
 export const createUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        await checkPlanLimit(req.tenant!.hospitalId.toString(), 'users');
+
         const { name, email, phone, roles, password } = req.body;
 
         const passwordHash = await hashPassword(password || 'defaultPassword123'); // Should force password set or email invite
@@ -66,6 +69,25 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
         });
 
         sendSuccess(res, updatedUser, 'User updated');
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const completeOnboarding = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = (req as any).user.id;
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { hasCompletedOnboarding: true },
+            { new: true }
+        );
+
+        if (!user) {
+            return sendError(res, 'User not found', 404);
+        }
+
+        sendSuccess(res, user, 'Onboarding completed');
     } catch (error) {
         next(error);
     }

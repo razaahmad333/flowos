@@ -1,17 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../config/logger';
-import { sendError } from '../utils/httpResponses';
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-    logger.error(err);
+export const errorHandler = (
+    err: any,
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal Server Error';
 
-    if (err.name === 'ValidationError') {
-        return sendError(res, err.message, 400, 'VALIDATION_ERROR');
-    }
+    // Log the error with context
+    logger.error({
+        msg: 'Request Error',
+        requestId: (req as any).requestId, // Cast to any to access custom properties
+        error: message,
+        stack: err.stack,
+        userId: (req as any).user?.id,
+        hospitalId: (req as any).tenant?.hospitalId,
+        statusCode,
+        path: req.path,
+        method: req.method,
+    });
 
-    if (err.name === 'MongoServerError' && err.code === 11000) {
-        return sendError(res, 'Duplicate key error', 409, 'DUPLICATE_ENTRY');
-    }
-
-    return sendError(res, 'Internal Server Error', 500, 'INTERNAL_SERVER_ERROR');
+    res.status(statusCode).json({
+        success: false,
+        error: message,
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    });
 };

@@ -8,7 +8,8 @@ const router = Router();
 
 router.use(authMiddleware, tenantMiddleware);
 
-router.get('/me', requireRoles('SUPERADMIN', 'ADMIN'), hospitalController.getMe);
+router.get('/me', authMiddleware, tenantMiddleware, hospitalController.getMe);
 router.patch('/settings', requireRoles('SUPERADMIN'), hospitalController.updateSettings);
+router.post('/apply-template', authMiddleware, tenantMiddleware, requireRoles('SUPERADMIN', 'ADMIN'), hospitalController.applyTemplate);
 
 export default router;

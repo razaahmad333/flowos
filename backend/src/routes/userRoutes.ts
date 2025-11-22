@@ -11,5 +11,6 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/', requireRoles('SUPERADMIN', 'ADMIN'), userController.getUsers);
 router.post('/', requireRoles('SUPERADMIN', 'ADMIN'), userController.createUser);
 router.patch('/:id', requireRoles('SUPERADMIN', 'ADMIN'), userController.updateUser);
+router.post('/me/complete-onboarding', authMiddleware, userController.completeOnboarding);
 
 export default router;

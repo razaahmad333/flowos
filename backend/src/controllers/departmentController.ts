@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as departmentService from '../services/departmentService';
 import { sendSuccess, sendError } from '../utils/httpResponses';
 import { Types } from 'mongoose';
+import { checkPlanLimit } from '../services/featureService';
 
 export const getDepartments = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -14,6 +15,8 @@ export const getDepartments = async (req: Request, res: Response, next: NextFunc
 
 export const createDepartment = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        await checkPlanLimit(req.tenant!.hospitalId.toString(), 'departments');
+
         const department = await departmentService.createDepartment(
             req.tenant!.hospitalId,
             req.body,

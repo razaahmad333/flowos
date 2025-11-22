@@ -35,7 +35,7 @@ const router = Router();
  *       400:
  *         description: Validation error
  */
-router.post('/register-hospital-admin', authController.registerHospital);
+router.post('/register-admin', authController.registerHospital);
 
 /**
  * @swagger

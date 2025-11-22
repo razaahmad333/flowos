@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as doctorService from '../services/doctorService';
 import { sendSuccess, sendError } from '../utils/httpResponses';
 import { Types } from 'mongoose';
+import { checkPlanLimit } from '../services/featureService';
 
 export const getDoctors = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -14,6 +15,8 @@ export const getDoctors = async (req: Request, res: Response, next: NextFunction
 
 export const createDoctor = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        await checkPlanLimit(req.tenant!.hospitalId.toString(), 'doctors');
+
         const doctor = await doctorService.createDoctor(
             req.tenant!.hospitalId,
             req.body,
