@@ -1,3 +1,6 @@
+import { Request, Response, NextFunction } from 'express';
+import * as authService from '../services/authService';
+import { sendSuccess, sendError } from '../utils/httpResponses';
 import { getHospitalAIFeatures } from '../services/featureService';
 
 export const registerHospital = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

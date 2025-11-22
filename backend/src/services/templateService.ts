@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import MasterDepartment from '../models/MasterDepartment';
 import Hospital from '../models/Hospital';
 import Department from '../models/Department';
 import Doctor from '../models/Doctor';
@@ -33,16 +34,26 @@ export const applyDefaultTemplate = async (hospitalId: string, templateKey: stri
         throw new Error('Template already applied');
     }
 
-    // Create Departments
+    // Create Departments (or update if they exist) using master departments
     const departmentMap = new Map<string, Types.ObjectId>();
-    for (const deptName of template.departments) {
-        const dept = await Department.create({
-            hospitalId,
-            name: deptName,
-            code: deptName.toUpperCase().replace(/\s+/g, '_').slice(0, 10),
-            isActive: true,
-        });
-        departmentMap.set(deptName, dept._id as Types.ObjectId);
+    // Find master departments for this template
+    const masters = await MasterDepartment.find({ tags: templateKey, isActive: true });
+    for (const master of masters) {
+        const dept = await Department.findOneAndUpdate(
+            { hospitalId, masterDepartmentId: master._id },
+            {
+                $setOnInsert: {
+                    hospitalId,
+                    masterDepartmentId: master._id,
+                    code: master.code,
+                    name: master.defaultName,
+                    isCustom: false,
+                    isActive: true,
+                },
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        departmentMap.set(master.defaultName, dept._id as Types.ObjectId);
     }
 
     // Create Doctors (assign to first department for simplicity, or random)
@@ -50,13 +61,18 @@ export const applyDefaultTemplate = async (hospitalId: string, templateKey: stri
         const firstDeptId = departmentMap.values().next().value;
         if (firstDeptId) {
             for (const docName of template.doctors) {
-                await Doctor.create({
-                    hospitalId,
-                    name: docName,
-                    code: docName.toUpperCase().replace(/\s+/g, '_').slice(0, 10),
-                    departmentId: firstDeptId,
-                    isActive: true,
-                });
+                const code = docName.toUpperCase().replace(/\s+/g, '_').slice(0, 10);
+                await Doctor.findOneAndUpdate(
+                    { hospitalId, code },
+                    {
+                        hospitalId,
+                        name: docName,
+                        code,
+                        departmentId: firstDeptId,
+                        isActive: true,
+                    },
+                    { upsert: true, new: true, setDefaultsOnInsert: true }
+                );
             }
         }
     }
